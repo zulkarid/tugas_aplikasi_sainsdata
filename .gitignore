@@ -1,1 +1,3 @@
-.myenv
+*.env
+*.xml
+scraped_data_results/
