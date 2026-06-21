@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisis Tren Media Sosial - Kreator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { text-align: center; color: #2c3e50; }
+        .chart-box { margin: 30px 0; padding: 20px; border: 1px solid #e9ecef; border-radius: 8px; }
+        .btn-scrape { display: block; width: 200px; margin: 20px auto; padding: 12px; background-color: #e74c3c; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; }
+        .btn-scrape:hover { background-color: #c0392b; }
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card { background: #fff; border-left: 5px solid #3498db; padding: 20px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-top: 1px solid #edf2f7; border-right: 1px solid #edf2f7; border-bottom: 1px solid #edf2f7; }
+        .card h3 { margin: 0 0 10px 0; color: #2980b9; font-size: 1.2em; }
+        .card p { margin: 5px 0; font-size: 0.95em; line-height: 1.4; }
+        .badge { background: #e8f4fd; color: #2b6cb0; padding: 3px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📊 Trend Social Media Video Finder</h1>
+    <p style="text-align: center; color: #7f8c8d;">Membantu memfilter topik spesifik dari data media sosial terkini</p>
+
+    <button class="btn-scrape" id="btnScrape">Live Scrape Data Baru</button>
+
+    <div class="chart-box">
+        <h2 style="margin-top: 0; font-size: 1.3em; color: #34495e;">📈 Top 10 Niche Hashtag Terpopuler</h2>
+        <canvas id="trendChart" height="120"></canvas>
+    </div>
+
+    <div style="margin-top: 40px;">
+        <h2 style="font-size: 1.4em; color: #2c3e50;">💡 Rekomendasi Ide Topik Konten Video</h2>
+        <div class="grid-cards" id="recommendationCards">
+            </div>
+    </div>
+</div>
+
+<script>
+    let trendChart = null;
+
+    // Fungsi utama untuk merender grafik dan rekomendasi kartu ide video
+    function updateUI(trendData) {
+        const labels = trendData.map(item => item.hashtag);
+        const counts = trendData.map(item => item.count);
+
+        // 1. RENDER ATAU UPDATE GRAPH (CHART.JS)
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        if (trendChart) {
+            trendChart.destroy(); // Hancurkan grafik lama jika ada update data baru
+        }
+        
+        trendChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Frekuensi Kemunculan Topik',
+                    data: counts,
+                    backgroundColor: 'rgba(52, 152, 219, 0.6)',
+                    borderColor: 'rgba(52, 152, 219, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Membuat grafik batang menjadi horizontal agar teks hashtag terbaca jelas
+                scales: { x: { beginAtZero: true } }
+            }
+        });
+
+        // 2. RENDER GENERATOR KARTU IDE VIDEO
+        const cardContainer = document.getElementById('recommendationCards');
+        cardContainer.innerHTML = ''; 
+
+        trendData.forEach(item => {
+            // Logika NLP / Rule-based Sederhana untuk menentukan ide konten berdasarkan teks hashtag
+            let saranIdeVideo = `Buat video edukasi menarik, kupas tuntas tren terbaru, atau tips & trik bermanfaat seputar dunia <strong>${item.hashtag}</strong>.`;
+            
+            if(['crochet', 'amigurumi', 'maquillaje'].includes(item.hashtag)) {
+                saranIdeVideo = `Buat video tutorial step-by-step 'How-To' atau proses estetik 'Behind The Scenes' pengerjaan proyek <strong>${item.hashtag}</strong>.`;
+            } else if(['stunting', 'news', 'sumbawa', 'ntb'].includes(item.hashtag)) {
+                saranIdeVideo = `Buat konten berbasis infografis data atau rangkuman berita berdurasi pendek (< 1 menit) yang membahas perkembangan terkini isu <strong>${item.hashtag}</strong>.`;
+            } else if(['modafitness', 'academia', 'treino', 'fitness', 'gym'].includes(item.hashtag)) {
+                saranIdeVideo = `Buat video rutinitas latihan harian, tips memilih perlengkapan olahraga nyaman, atau video motivasi transformasi seputar <strong>${item.hashtag}</strong>.`;
+            }
+
+            cardContainer.innerHTML += `
+                <div class="card">
+                    <h3>#${item.hashtag}</h3>
+                    <p><span class="badge">Kemunculan: ${item.count}x</span></p>
+                    <p style="margin-top: 12px; color: #4a5568;">💡 ${saranIdeVideo}</p>
+                </div>
+            `;
+        });
+    }
+
+    // Load Pertama kali: Ambil data olahan dari file JSON lokal lewat endpoint Flask
+    document.addEventListener("DOMContentLoaded", () => {
+        fetch('/api/trends')
+            .then(res => res.json())
+            .then(resData => {
+                if(resData.status === "success") {
+                    updateUI(resData.data);
+                } else {
+                    alert("Gagal memuat data lokal: " + resData.message);
+                }
+            })
+            .catch(err => console.error("Error fetching local trends:", err));
+    });
+
+    // Event Handler saat tombol Live Scrape ditekan
+    document.getElementById('btnScrape').addEventListener('click', () => {
+        const btn = document.getElementById('btnScrape');
+        btn.innerText = "Memproses Scraping...";
+        btn.disabled = true;
+
+        fetch('/api/scrape', { method: 'POST' })
+            .then(res => res.json())
+            .then(resData => {
+                if(resData.status === "success") {
+                    updateUI(resData.data);
+                    alert("Data berhasil di-update langsung dari server Apify!");
+                } else {
+                    alert("Scraping gagal: " + resData.message);
+                }
+            })
+            .catch(err => console.error("Error live scraping:", err))
+            .finally(() => {
+                btn.innerText = "Live Scrape Data Baru";
+                btn.disabled = false;
+            });
+    });
+</script>
+</body>
+</html>
