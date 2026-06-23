@@ -109,5 +109,31 @@ def handle_scrape():
         "data": trend_results
     })
 
+@app.route('/api/posts/<hashtag>', methods=['GET'])
+def get_posts_by_hashtag(hashtag):
+    """Mendapatkan daftar postingan yang mengandung hashtag tertentu"""
+    if not os.path.exists(LOCAL_JSON_DATASET):
+        return jsonify({"status": "error", "message": "File JSON dataset tidak ditemukan."}), 404
+        
+    try:
+        with open(LOCAL_JSON_DATASET, 'r', encoding='utf-8') as f:
+            posts_data = json.load(f)
+        
+        hashtag_lower = hashtag.lower().strip()
+        matched_posts = []
+        for post in posts_data:
+            tags = post.get('hashtags', [])
+            if isinstance(tags, list):
+                if any(t.lower().strip() == hashtag_lower for t in tags if isinstance(t, str)):
+                    matched_posts.append(post)
+                    
+        return jsonify({
+            "status": "success",
+            "hashtag": hashtag,
+            "data": matched_posts
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
