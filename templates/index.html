@@ -54,6 +54,18 @@
             </div>
     </div>
 
+<div id="mlSection" class="posts-section">
+    <h2 style="font-size: 1.4em; color: #2c3e50;">
+        🤖 Prediksi Popularitas Postingan
+    </h2>
+
+    <button class="btn-scrape" onclick="loadMLPrediction()">
+        Jalankan Prediksi
+    </button>
+
+    <div id="mlResult"></div>
+</div>
+
     <!-- New Section for Instagram Posts Details -->
     <div id="postsDetailSection" class="posts-section" style="display: none;">
         <h2 id="postsSectionTitle" style="font-size: 1.4em; color: #2c3e50;">📸 Postingan Terkait</h2>
@@ -244,6 +256,70 @@
                 btn.disabled = false;
             });
     });
+
+async function loadMLPrediction() {
+
+    const container = document.getElementById("mlResult");
+
+    container.innerHTML = "<p>⏳ Menjalankan model...</p>";
+
+    try {
+
+        const response = await fetch('/api/model');
+        const data = await response.json();
+
+        let html = `
+            <div class="card">
+                <h3>📊 Evaluasi Model</h3>
+                <p><b>Accuracy:</b> ${data.accuracy}</p>
+                <p><b>Precision:</b> ${data.precision}</p>
+                <p><b>Recall:</b> ${data.recall}</p>
+                <p><b>F1 Score:</b> ${data.f1_score}</p>
+            </div>
+
+            <h3 style="margin-top:25px;">
+                📌 Hasil Prediksi Postingan
+            </h3>
+
+            <div class="grid-cards">
+        `;
+
+        data.predictions.forEach(post => {
+
+            html += `
+                <div class="card">
+                    <h3>@${post.username}</h3>
+
+                    <p>
+                        ❤️ Likes:
+                        ${post.likes}
+                    </p>
+
+                    <p>
+                        💬 Komentar:
+                        ${post.comments}
+                    </p>
+
+                    <p>
+                        🤖 Prediksi:
+                        <b>${post.prediction}</b>
+                    </p>
+                </div>
+            `;
+        });
+
+        html += "</div>";
+
+        container.innerHTML = html;
+
+    } catch(error) {
+
+        container.innerHTML =
+            "<p>❌ Gagal menjalankan model.</p>";
+
+        console.error(error);
+    }
+}
 </script>
 </body>
 </html>
