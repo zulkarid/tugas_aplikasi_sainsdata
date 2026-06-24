@@ -6,6 +6,10 @@ from flask import Flask, render_template, jsonify
 from datetime import datetime
 from collections import Counter
 from apify_client import ApifyClient
+from ml_model import (
+    train_popularity_model,
+    predict_posts
+)
 
 app = Flask(__name__)
 
@@ -134,6 +138,42 @@ def get_posts_by_hashtag(hashtag):
         })
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/model', methods=['GET'])
+def run_ml_model():
+
+    try:
+
+        with open(
+            LOCAL_JSON_DATASET,
+            'r',
+            encoding='utf-8'
+        ) as f:
+
+            posts_data = json.load(f)
+
+        metric = train_popularity_model(posts_data)
+
+        predictions = predict_posts(posts_data)
+
+        return jsonify({
+            "status": "success",
+            "model": "Decision Tree",
+
+            "accuracy": metric["accuracy"],
+            "precision": metric["precision"],
+            "recall": metric["recall"],
+            "f1_score": metric["f1_score"],
+
+            "predictions": predictions[:20]
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
